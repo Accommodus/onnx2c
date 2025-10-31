@@ -24,3 +24,36 @@ jobs:
       - name: Run tests
         run: make test
         working-directory: build
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: executable-${{ matrix.build_type }}
+          path: build/onnx2c
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    strategy:
+      matrix:
+        build_type: [Debug, Release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Release executable
+        uses: actions/download-artifact@v4
+        with:
+          name: executable-${{ matrix.build_type }}
+          path: dist
+      - name: Rename asset
+        run: |
+          cp dist/onnx2c dist/onnx2c-${{ matrix.build_type }}
+          ls -l dist
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: dist/onnx2c-${{ matrix.build_type }}
+          draft: false
+          prerelease: false
