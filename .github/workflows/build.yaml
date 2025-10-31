@@ -57,7 +57,7 @@ jobs:
             ubuntu-24.04-arm) arch="arm64" ;;
             *) echo "Unknown OS"; exit 1 ;;
           esac
-          cp dist/onnx2c "dist/onnx2c-${{ matrix.build_type }}-${arch}"
+          mv dist/onnx2c "dist/onnx2c-${{ matrix.build_type }}-${arch}"
           ls -l dist
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
