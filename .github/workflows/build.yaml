@@ -1,48 +1,96 @@
-name: Build
+name: Build & Release onnx2c
 on: [push, pull_request, workflow_dispatch]
-
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: build (${{ matrix.target_os }}-${{ matrix.arch }}-${{ matrix.build_type }})
     strategy:
+      fail-fast: false
       matrix:
         build_type: [Debug, Release]
+        include:
+          - target_os: linux
+            arch: x86_64
+            os: ubuntu-latest
+          - target_os: linux
+            arch: arm64
+            os: ubuntu-24.04-arm
+          - target_os: macos
+            arch: x86_64
+            os: macos-13
+          - target_os: macos
+            arch: arm64
+            os: macos-14
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
-      - name: Build executable
-        run: bash scripts/install_linux.bash ${{ matrix.build_type }}
+      - name: Run OS-specific install
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${{ runner.os }}" in
+            Linux)
+              bash scripts/install_linux.bash "${{ matrix.build_type }}"
+              ;;
+            macOS)
+              bash scripts/install_macos.bash "${{ matrix.build_type }}"
+              ;;
+            *)
+              echo "Unsupported runner OS: ${{ runner.os }}"
+              exit 1
+              ;;
+          esac
       - name: Upload executable
         uses: actions/upload-artifact@v4
         with:
-          name: executable-${{ matrix.build_type }}
+          name: executable-${{ matrix.target_os }}-${{ matrix.arch }}-${{ matrix.build_type }}
           path: build/onnx2c
           if-no-files-found: error
-
+          
   release:
+    name: release (${{ matrix.target_os }}-${{ matrix.arch }})
     if: startsWith(github.ref, 'refs/tags/')
     needs: build
     strategy:
+      fail-fast: false
       matrix:
-        build_type: [Debug, Release]
-    runs-on: ubuntu-latest
+        include:
+          - target_os: linux
+            arch: x86_64
+            os: ubuntu-latest
+            build_type: Release
+          - target_os: linux
+            arch: arm64
+            os: ubuntu-24.04-arm
+            build_type: Release
+          - target_os: macos
+            arch: x86_64
+            os: macos-13
+            build_type: Release
+          - target_os: macos
+            arch: arm64
+            os: macos-14
+            build_type: Release
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: write
     steps:
-      - name: Download Release executable
+      - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: executable-${{ matrix.build_type }}
+          name: executable-${{ matrix.target_os }}-${{ matrix.arch }}-${{ matrix.build_type }}
           path: dist
-      - name: Rename asset
+      - name: Rename asset for release
         run: |
-          cp dist/onnx2c dist/onnx2c-${{ matrix.build_type }}
+          set -euo pipefail
+          cp dist/onnx2c "dist/onnx2c-${{ matrix.target_os }}-${{ matrix.arch }}"
           ls -l dist
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          files: dist/onnx2c-${{ matrix.build_type }}
+          files: |
+            dist/onnx2c-${{ matrix.target_os }}-${{ matrix.arch }}
           draft: false
           prerelease: false
