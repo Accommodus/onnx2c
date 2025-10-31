@@ -17,9 +17,9 @@ jobs:
           - target_os: macos
             arch: x86_64
             os: macos-13
-          - target_os: macos
-            arch: arm64
-            os: macos-14
+          #- target_os: macos
+          #  arch: arm64
+          #  os: macos-14
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -47,7 +47,7 @@ jobs:
           name: executable-${{ matrix.target_os }}-${{ matrix.arch }}-${{ matrix.build_type }}
           path: build/onnx2c
           if-no-files-found: error
-          
+
   release:
     name: release (${{ matrix.target_os }}-${{ matrix.arch }})
     if: startsWith(github.ref, 'refs/tags/')
@@ -68,10 +68,10 @@ jobs:
             arch: x86_64
             os: macos-13
             build_type: Release
-          - target_os: macos
-            arch: arm64
-            os: macos-14
-            build_type: Release
+          #- target_os: macos
+          #  arch: arm64
+          #  os: macos-14
+          #  build_type: Release
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
