@@ -18,7 +18,7 @@ if ! command -v brew >/dev/null 2>&1; then
 fi
 
 # Install dependencies
-brew install cmake protobuf
+brew install protobuf
 
 # Create build directory
 mkdir -p build
